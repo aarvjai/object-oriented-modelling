@@ -1,0 +1,138 @@
+
+# LAB-4: Cuckoo Search
+
+import numpy as np
+import random
+import math
+import matplotlib.pyplot as plt
+
+
+# Define a sample function to optimize (Sphere function)
+def objective_function(x):
+    return np.sum(x ** 2)
+
+
+# Levy flight function
+def levy_flight(Lambda):
+    sigma_u = (
+        math.gamma(1 + Lambda) * np.sin(np.pi * Lambda / 2)
+        / (
+            math.gamma((1 + Lambda) / 2)
+            * Lambda
+            * 2 ** ((Lambda - 1) / 2)
+        )
+    ) ** (1 / Lambda)
+
+    sigma_v = 1
+
+    u = np.random.normal(0, sigma_u)
+    v = np.random.normal(0, sigma_v)
+
+    step = u / (abs(v) ** (1 / Lambda))
+
+    return step
+
+
+# Cuckoo Search Algorithm
+def cuckoo_search(
+    n=25,
+    pa=0.25,
+    max_iter=100,
+    dim=2,
+    lower_bound=-10,
+    upper_bound=10
+):
+
+    # Initialize nests randomly
+    nests = np.random.uniform(
+        lower_bound, upper_bound, (n, dim)
+    )
+
+    # Evaluate initial nests
+    fitness = np.array([
+        objective_function(nest) for nest in nests
+    ])
+
+    # Find the best nest
+    best_index = np.argmin(fitness)
+    best_nest = nests[best_index].copy()
+    best_fitness = fitness[best_index]
+
+    convergence = []
+
+    # Main loop
+    for iteration in range(max_iter):
+
+        # Generate new solutions using Levy flights
+        for i in range(n):
+
+            step = np.array([
+                levy_flight(1.5) for _ in range(dim)
+            ])
+
+            new_nest = nests[i] + 0.01 * step * np.random.randn(dim)
+
+            # Keep solutions within bounds
+            new_nest = np.clip(
+                new_nest, lower_bound, upper_bound
+            )
+
+            new_fitness = objective_function(new_nest)
+
+            # Randomly select another nest
+            j = random.randint(0, n - 1)
+
+            # Replace nest if new solution is better
+            if new_fitness < fitness[j]:
+                nests[j] = new_nest.copy()
+                fitness[j] = new_fitness
+
+        # Abandon some nests and generate new solutions
+        for i in range(n):
+
+            if random.random() < pa:
+
+                new_nest = np.random.uniform(
+                    lower_bound, upper_bound, dim
+                )
+
+                new_fitness = objective_function(new_nest)
+
+                if new_fitness < fitness[i]:
+                    nests[i] = new_nest.copy()
+                    fitness[i] = new_fitness
+
+        # Update global best
+        best_index = np.argmin(fitness)
+
+        if fitness[best_index] < best_fitness:
+            best_fitness = fitness[best_index]
+            best_nest = nests[best_index].copy()
+
+        convergence.append(best_fitness)
+
+        print(
+            f"Iteration {iteration + 1}: "
+            f"Best Fitness = {best_fitness:.6f}"
+        )
+
+    return best_nest, best_fitness, convergence
+
+
+# Execute Cuckoo Search
+best_solution, best_value, convergence = cuckoo_search()
+
+
+# Display results
+print("\nOptimization Results:")
+print("Best Solution:", best_solution)
+print("Best Fitness:", best_value)
+
+
+# Plot convergence graph
+plt.plot(convergence)
+plt.title("Cuckoo Search Convergence")
+plt.xlabel("Iterations")
+plt.ylabel("Best Fitness")
+plt.grid(True)
+plt.show()

@@ -1,0 +1,103 @@
+
+import numpy as np
+import random
+
+# Objective Function
+def objective_function(x):
+    return x ** 2
+
+
+# Genetic Algorithm Parameters
+population_size = 100
+num_generations = 50
+mutation_rate = 0.1
+crossover_rate = 0.7
+range_min = -10
+range_max = 10
+
+
+# Initialize Population
+population = np.random.uniform(
+    range_min, range_max, population_size
+)
+
+
+# Calculate Fitness
+def fitness_function(x):
+    return 1 / (1 + objective_function(x))
+
+
+# Selection
+def selection(population):
+    fitness = np.array([fitness_function(x) for x in population])
+    probabilities = fitness / np.sum(fitness)
+
+    selected = np.random.choice(
+        population,
+        size=population_size,
+        p=probabilities
+    )
+    return selected
+
+
+# Crossover
+def crossover(parent1, parent2):
+    if random.random() < crossover_rate:
+        alpha = random.random()
+
+        child1 = alpha * parent1 + (1 - alpha) * parent2
+        child2 = alpha * parent2 + (1 - alpha) * parent1
+
+        return child1, child2
+
+    return parent1, parent2
+
+
+# Mutation
+def mutation(individual):
+    if random.random() < mutation_rate:
+        individual += np.random.normal(0, 1)
+
+    return np.clip(individual, range_min, range_max)
+
+
+# Genetic Algorithm
+for generation in range(num_generations):
+
+    # Selection
+    selected_population = selection(population)
+
+    new_population = []
+
+    # Crossover and Mutation
+    for i in range(0, population_size, 2):
+
+        parent1 = selected_population[i]
+        parent2 = selected_population[i + 1]
+
+        child1, child2 = crossover(parent1, parent2)
+
+        child1 = mutation(child1)
+        child2 = mutation(child2)
+
+        new_population.extend([child1, child2])
+
+    population = np.array(new_population)
+
+    # Find Best Solution
+    best_individual = min(population, key=objective_function)
+    best_fitness = objective_function(best_individual)
+
+    print(
+        f"Generation {generation + 1}: "
+        f"Best Solution = {best_individual:.6f}, "
+        f"Objective Value = {best_fitness:.6f}"
+    )
+
+
+# Final Result
+best_solution = min(population, key=objective_function)
+
+print("\nFinal Result:")
+print("Best Solution:", best_solution)
+print("Minimum Objective Value:", objective_function(best_solution))

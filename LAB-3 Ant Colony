@@ -1,0 +1,165 @@
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 1. Define the Problem: Create a set of cities with their coordinates
+cities = np.array([
+    [0, 0],  # City 0
+    [1, 5],  # City 1
+    [5, 1],  # City 2
+    [6, 4],  # City 3
+    [7, 8]   # City 4
+])
+
+
+# Calculate the distance matrix between each pair of cities
+def calculate_distances(cities):
+    n = len(cities)
+    distances = np.zeros((n, n))
+
+    for i in range(n):
+        for j in range(n):
+            distances[i][j] = np.linalg.norm(
+                cities[i] - cities[j]
+            )
+
+    return distances
+
+
+# 2. Ant Colony Optimization Algorithm
+def ant_colony_optimization(
+    distances,
+    n_ants=10,
+    n_iterations=100,
+    alpha=1,
+    beta=2,
+    evaporation_rate=0.5,
+    Q=100
+):
+
+    n_cities = len(distances)
+
+    # Initialize pheromone levels
+    pheromone = np.ones((n_cities, n_cities))
+
+    # Calculate visibility (inverse of distance)
+    visibility = 1 / (distances + np.eye(n_cities))
+
+    best_path = None
+    best_distance = float('inf')
+
+    # Main ACO loop
+    for iteration in range(n_iterations):
+
+        all_paths = []
+        all_distances = []
+
+        # Each ant constructs a path
+        for ant in range(n_ants):
+
+            # Start from a random city
+            start = np.random.randint(n_cities)
+            path = [start]
+            visited = set(path)
+
+            # Visit all cities
+            while len(path) < n_cities:
+
+                current_city = path[-1]
+
+                # Calculate transition probabilities
+                probabilities = []
+
+                for city in range(n_cities):
+
+                    if city not in visited:
+                        probability = (
+                            pheromone[current_city][city] ** alpha
+                        ) * (
+                            visibility[current_city][city] ** beta
+                        )
+                    else:
+                        probability = 0
+
+                    probabilities.append(probability)
+
+                probabilities = np.array(probabilities)
+                probabilities /= probabilities.sum()
+
+                # Select next city
+                next_city = np.random.choice(
+                    range(n_cities), p=probabilities
+                )
+
+                path.append(next_city)
+                visited.add(next_city)
+
+            # Return to starting city
+            path.append(start)
+
+            # Calculate total distance
+            total_distance = sum(
+                distances[path[i]][path[i + 1]]
+                for i in range(n_cities)
+            )
+
+            all_paths.append(path)
+            all_distances.append(total_distance)
+
+            # Update best path
+            if total_distance < best_distance:
+                best_distance = total_distance
+                best_path = path.copy()
+
+        # Evaporate pheromones
+        pheromone *= (1 - evaporation_rate)
+
+        # Deposit pheromones
+        for path, distance in zip(all_paths, all_distances):
+
+            for i in range(n_cities):
+                city1 = path[i]
+                city2 = path[i + 1]
+
+                pheromone[city1][city2] += Q / distance
+                pheromone[city2][city1] += Q / distance
+
+        print(
+            f"Iteration {iteration + 1}: "
+            f"Best Distance = {best_distance:.4f}"
+        )
+
+    return best_path, best_distance
+
+
+# 3. Execute ACO
+distances = calculate_distances(cities)
+
+best_path, best_distance = ant_colony_optimization(distances)
+
+
+# 4. Display Results
+print("\nBest Path:", best_path)
+print("Best Distance:", best_distance)
+
+
+# 5. Visualize the Best Path
+plt.figure(figsize=(8, 6))
+
+path_coordinates = cities[best_path]
+
+plt.plot(
+    path_coordinates[:, 0],
+    path_coordinates[:, 1],
+    'o-',
+    color='blue'
+)
+
+for i, (x, y) in enumerate(cities):
+    plt.text(x, y, f'City {i}')
+
+plt.title("Ant Colony Optimization - TSP")
+plt.xlabel("X Coordinate")
+plt.ylabel("Y Coordinate")
+plt.grid(True)
+plt.show()

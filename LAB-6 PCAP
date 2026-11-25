@@ -1,0 +1,141 @@
+
+# LAB-6: Parallel Cellular Algorithms and Programs
+# PCAP
+
+import numpy as np
+
+
+# Define the problem: Sphere Function
+def optimization_function(position):
+    """Example: Sphere Function for minimization."""
+    return sum(x**2 for x in position)
+
+
+# Initialize Parameters
+GRID_SIZE = (10, 10)
+NEIGHBORHOOD_RADIUS = 1
+DIMENSIONS = 2
+ITERATIONS = 30
+
+
+# Initialize Population
+def initialize_population(grid_size, dimensions):
+
+    return np.random.uniform(
+        -10, 10, (grid_size[0], grid_size[1], dimensions)
+    )
+
+
+# Get Moore Neighborhood
+def get_neighborhood(population, row, col):
+
+    rows, cols, _ = population.shape
+    neighbors = []
+
+    for i in range(-NEIGHBORHOOD_RADIUS,
+                   NEIGHBORHOOD_RADIUS + 1):
+
+        for j in range(-NEIGHBORHOOD_RADIUS,
+                       NEIGHBORHOOD_RADIUS + 1):
+
+            if i == 0 and j == 0:
+                continue
+
+            new_row = row + i
+            new_col = col + j
+
+            if (0 <= new_row < rows and
+                    0 <= new_col < cols):
+
+                neighbors.append(
+                    population[new_row, new_col]
+                )
+
+    return neighbors
+
+
+# Cellular Algorithm
+def cellular_algorithm():
+
+    # Initialize population
+    population = initialize_population(
+        GRID_SIZE, DIMENSIONS
+    )
+
+    # Find initial best solution
+    best_solution = None
+    best_fitness = float('inf')
+
+    # Main iteration loop
+    for iteration in range(ITERATIONS):
+
+        new_population = population.copy()
+
+        # Visit every cell in the grid
+        for row in range(GRID_SIZE[0]):
+
+            for col in range(GRID_SIZE[1]):
+
+                current = population[row, col]
+
+                # Get neighboring cells
+                neighbors = get_neighborhood(
+                    population, row, col
+                )
+
+                # Find best neighbor
+                best_neighbor = min(
+                    neighbors,
+                    key=optimization_function
+                )
+
+                # Generate new solution
+                candidate = (
+                    current
+                    + np.random.rand(DIMENSIONS)
+                    * (best_neighbor - current)
+                    + np.random.normal(0, 0.1, DIMENSIONS)
+                )
+
+                # Keep solution within bounds
+                candidate = np.clip(candidate, -10, 10)
+
+                # Evaluate candidate
+                if (optimization_function(candidate)
+                        < optimization_function(current)):
+
+                    new_population[row, col] = candidate
+
+        # Update population
+        population = new_population
+
+        # Find best solution in current population
+        for row in range(GRID_SIZE[0]):
+
+            for col in range(GRID_SIZE[1]):
+
+                fitness = optimization_function(
+                    population[row, col]
+                )
+
+                if fitness < best_fitness:
+
+                    best_fitness = fitness
+                    best_solution = population[row, col].copy()
+
+        print(
+            f"Iteration {iteration + 1}: "
+            f"Best Fitness = {best_fitness:.6f}"
+        )
+
+    return best_solution, best_fitness
+
+
+# Execute Cellular Algorithm
+best_solution, best_fitness = cellular_algorithm()
+
+
+# Display Results
+print("\nOptimization Results:")
+print("Best Solution:", best_solution)
+print("Best Fitness:", best_fitness)

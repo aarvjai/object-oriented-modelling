@@ -1,0 +1,131 @@
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+# Step 1: Define the Problem (Sphere Function)
+def objective_function(x):
+    return np.sum(x**2)
+
+
+# Step 2: Initialize Parameters
+num_wolves = 5
+num_dimensions = 2
+num_iterations = 30
+
+lb = -10
+ub = 10
+
+
+# Step 3: Initialize Population
+wolves = np.random.uniform(
+    lb, ub, (num_wolves, num_dimensions)
+)
+
+
+# Step 4: Initialize Alpha, Beta and Delta
+alpha_pos = np.zeros(num_dimensions)
+beta_pos = np.zeros(num_dimensions)
+delta_pos = np.zeros(num_dimensions)
+
+alpha_score = float("inf")
+beta_score = float("inf")
+delta_score = float("inf")
+
+
+# Step 5: Grey Wolf Optimization
+for iteration in range(num_iterations):
+
+    # Calculate fitness of each wolf
+    for i in range(num_wolves):
+
+        fitness = objective_function(wolves[i])
+
+        # Update Alpha
+        if fitness < alpha_score:
+            delta_score = beta_score
+            delta_pos = beta_pos.copy()
+
+            beta_score = alpha_score
+            beta_pos = alpha_pos.copy()
+
+            alpha_score = fitness
+            alpha_pos = wolves[i].copy()
+
+        # Update Beta
+        elif fitness < beta_score:
+            delta_score = beta_score
+            delta_pos = beta_pos.copy()
+
+            beta_score = fitness
+            beta_pos = wolves[i].copy()
+
+        # Update Delta
+        elif fitness < delta_score:
+            delta_score = fitness
+            delta_pos = wolves[i].copy()
+
+    # Decrease parameter a from 2 to 0
+    a = 2 - iteration * (2 / num_iterations)
+
+    # Update positions of wolves
+    for i in range(num_wolves):
+
+        for j in range(num_dimensions):
+
+            r1 = np.random.random()
+            r2 = np.random.random()
+
+            A1 = 2 * a * r1 - a
+            C1 = 2 * r2
+
+            D_alpha = abs(C1 * alpha_pos[j] - wolves[i][j])
+            X1 = alpha_pos[j] - A1 * D_alpha
+
+            r1 = np.random.random()
+            r2 = np.random.random()
+
+            A2 = 2 * a * r1 - a
+            C2 = 2 * r2
+
+            D_beta = abs(C2 * beta_pos[j] - wolves[i][j])
+            X2 = beta_pos[j] - A2 * D_beta
+
+            r1 = np.random.random()
+            r2 = np.random.random()
+
+            A3 = 2 * a * r1 - a
+            C3 = 2 * r2
+
+            D_delta = abs(C3 * delta_pos[j] - wolves[i][j])
+            X3 = delta_pos[j] - A3 * D_delta
+
+            # Average the three positions
+            wolves[i][j] = (X1 + X2 + X3) / 3
+
+        # Keep wolves within search bounds
+        wolves[i] = np.clip(wolves[i], lb, ub)
+
+    print(
+        f"Iteration {iteration + 1}: "
+        f"Best Fitness = {alpha_score:.6f}"
+    )
+
+
+# Step 6: Display Results
+print("\nOptimization Results:")
+print("Best Position:", alpha_pos)
+print("Best Fitness:", alpha_score)
+
+
+# Step 7: Plot Convergence
+plt.plot(
+    range(1, num_iterations + 1),
+    [alpha_score] * num_iterations
+)
+
+plt.title("Grey Wolf Optimizer")
+plt.xlabel("Iterations")
+plt.ylabel("Best Fitness")
+plt.grid(True)
+plt.show()
